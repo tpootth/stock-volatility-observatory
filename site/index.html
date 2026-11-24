@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d0f13">
 <title>Stock Volatility Observatory · Carhart, GARCH &amp; EGARCH for 24 US stocks</title>
 <meta name="description" content="Interactive Carhart four-factor exposures, GARCH/EGARCH volatility models and annual conditional vs unconditional volatility for 24 US stocks, 2016–2025.">
 <link rel="preload" href="fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2315171b'/%3E%3Cpath d='M5 22 L11 14 L16 18 L21 8 L27 13' stroke='%234f7bff' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d0f13'/%3E%3Cpath d='M5 22 L11 14 L16 18 L21 8 L27 13' stroke='%2316c784' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -21,6 +22,7 @@
       (<span class="num">2,514</span> trading days).</p>
     <div class="kpis" id="kpis" aria-label="Headline results"></div>
   </div>
+  <div class="tape" id="tape" aria-label="Ten-year average alpha and volatility by stock"></div>
 </header>
 
 <nav class="filters" aria-label="Filters">
@@ -87,18 +89,18 @@
       </figure>
       <figure class="panel">
         <figcaption><b id="annTitle">Annual volatility</b>
-          <span class="legend"><i class="sw unc"></i>Unconditional <i class="sw garch"></i>GARCH <i class="sw egarch"></i>EGARCH</span></figcaption>
+          <span class="legend"><i class="sw unc"></i>Unconditional <i class="sw dot"></i>GARCH <i class="sw sq"></i>EGARCH</span></figcaption>
         <div id="annChart" class="chart" style="height:300px"></div>
       </figure>
       <figure class="panel">
         <figcaption><b>Every filtered stock-year</b>
           <span class="seg small" id="scatSeg"></span></figcaption>
         <div id="scatChart" class="chart" style="height:300px"></div>
-        <p class="note">Dashed line = equal. Cobalt points = focus stock.</p>
+        <p class="note">Dashed line = equal. Bright green points = focus stock.</p>
       </figure>
       <figure class="panel wide">
         <figcaption><b>Median gap by year, filtered stocks</b>
-          <span class="legend"><i class="sw garch"></i>GARCH <i class="sw egarch"></i>EGARCH</span></figcaption>
+          <span class="legend"><i class="sw solid"></i>GARCH <i class="sw hatch"></i>EGARCH</span></figcaption>
         <div id="gapChart" class="chart" style="height:230px"></div>
         <p class="note">Gap = 100 × (conditional ÷ unconditional − 1). Positive: the model implies more volatility than realised; calm years run positive, 2020 negative.</p>
       </figure>

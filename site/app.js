@@ -2,10 +2,12 @@
 (() => {
   "use strict";
   const GCOL = {
-    "Semiconductors": "#2a78d6", "Tech platforms & services": "#eb6834", "Consumer discretionary": "#1baf7a",
-    "Defensive": "#eda100", "Cyclical & financials": "#e87ba4",
+    "Semiconductors": "#3987e5", "Tech platforms & services": "#d95926", "Consumer discretionary": "#199e70",
+    "Defensive": "#c98500", "Cyclical & financials": "#d55181",
   };
-  const C = { garch: "#1f4fd8", egarch: "#eb6834", unc: "#2c3038", grid: "#eceef1", axis: "#8a9099", muted: "#c9ccd2" };
+  const C = { garch: "#14a974", egarch: "#ea3943", unc: "#c9d1db", panel: "#161a20", muted: "#3a424e", up: "#16c784", down: "#ea3943", dim: "#5d6672" };
+  const dir = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
+  const arrow = (v) => (v > 0 ? "▲" : v < 0 ? "▼" : "■");
   const YEARS = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
   const $ = (s) => document.querySelector(s);
   const NS = "http://www.w3.org/2000/svg";
@@ -93,6 +95,20 @@
     $("#kpis").innerHTML = k.map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
   }
 
+  /* ---------------- ticker tape ---------------- */
+  function renderTape() {
+    const items = D.stocks.map((st) => {
+      const p = byT[st.ticker].per;
+      return `<button type="button" class="tape-item" data-t="${st.ticker}" title="${esc(st.company)}: 10-yr average Carhart alpha and volatility"><b>${st.ticker}</b>` +
+        `<span class="${dir(p.alpha_pct_yr)}">${arrow(p.alpha_pct_yr)} ${sgn(p.alpha_pct_yr)}%</span><small>α/yr</small>` +
+        `<span>${fmt(p.vol_pct, 1)}%</span><small>vol</small></button>`;
+    }).join("");
+    const host = $("#tape");
+    host.innerHTML = `<div class="tape-track">${items}<span aria-hidden="true" style="display:contents">${items}</span></div>`;
+    host.querySelectorAll('[aria-hidden="true"] .tape-item').forEach((b) => b.setAttribute("tabindex", "-1"));
+    host.addEventListener("click", (e) => { const b = e.target.closest(".tape-item"); if (b) { setFocus(b.dataset.t); $("#volatility").scrollIntoView({ behavior: "smooth" }); } });
+  }
+
   /* ---------------- filters UI ---------------- */
   function buildFilters() {
     const chips = $("#groupChips");
@@ -163,14 +179,14 @@
       b.setAttribute("aria-pressed", s.ticker === state.focus);
       b.setAttribute("aria-label", `${s.ticker} ${s.company} scorecard. Focus volatility charts`);
       b.innerHTML = `
-        <div class="card-top"><span class="tk">${s.ticker}</span><span class="exch">${s.exchange}</span></div>
+        <div class="card-top"><span><span class="tk">${s.ticker}</span><span class="chg ${dir(p.alpha_pct_yr)}" title="10-yr average Carhart alpha">${arrow(p.alpha_pct_yr)} ${sgn(p.alpha_pct_yr)}%</span></span><span class="exch">${s.exchange}</span></div>
         <div class="co">${esc(s.company)}</div>
         <div class="grp"><i style="background:${GCOL[s.group]}"></i>${esc(s.group)}</div><div class="sector">${esc(s.gics_sector)}</div>
         <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none" aria-hidden="true"></svg>
         <div class="metrics">
           <div class="metric" title="Average market beta">Mkt β <b>${fmt(p.MKT_beta)}</b></div>
           <div class="metric" title="Average HML loading">HML <b>${fmt(p.HML)}</b></div>
-          <div class="metric" title="Average Carhart alpha, % per year">α %/yr <b>${sgn(p.alpha_pct_yr)}</b></div>
+          <div class="metric" title="Average Carhart alpha, % per year">α %/yr <b class="${dir(p.alpha_pct_yr)}">${sgn(p.alpha_pct_yr)}</b></div>
           <div class="metric" title="Average annual unconditional volatility">Vol % <b>${fmt(p.vol_pct, 1)}</b></div>
           <div class="metric" title="GARCH persistence α+β">Persist. <b>${fmt(p.GARCH_persist, 3)}</b></div>
           <div class="metric" title="EGARCH asymmetry γ">γ <b>${fmt(p.EGARCH_gamma, 3)}</b></div>
@@ -181,8 +197,9 @@
       const m = D.monthly[s.ticker].e, sv = b.querySelector(".spark");
       const x = lin(0, m.length - 1, 1, 239), y = lin(0, sparkMax, 39, 2);
       const pts = m.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-      el("polygon", { points: `1,39 ${pts} 239,39`, fill: "#ebf0fd" }, sv);
-      el("polyline", { points: pts, fill: "none", stroke: C.garch, "stroke-width": 1.4, "vector-effect": "non-scaling-stroke" }, sv);
+      const sc = p.alpha_pct_yr >= 0 ? C.up : C.down;
+      el("polygon", { points: `1,39 ${pts} 239,39`, fill: sc, "fill-opacity": 0.12 }, sv);
+      el("polyline", { points: pts, fill: "none", stroke: sc, "stroke-width": 1.4, "vector-effect": "non-scaling-stroke" }, sv);
       b.onclick = () => { setFocus(s.ticker); $("#volatility").scrollIntoView({ behavior: "smooth" }); };
       host.appendChild(b);
     });
@@ -200,16 +217,16 @@
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const mix = (a, b, t) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(",")})`; };
   function cellColor(sp, v) {
-    if (sp.seq) { const t = Math.max(0, Math.min(1, v / sp.r)); return [mix("#f0efec", "#184f95", t), t > 0.55]; }
+    if (sp.seq) { const t = Math.max(0, Math.min(1, v / sp.r)); return [mix("#262b33", "#14a974", t), t > 0.6]; }
     const t = Math.max(-1, Math.min(1, (v - sp.c) / sp.r));
-    return [mix("#f0efec", t < 0 ? "#256abf" : "#d03b3b", Math.abs(t)), Math.abs(t) > 0.6];
+    return [mix("#262b33", t < 0 ? "#ea3943" : "#14a974", Math.abs(t)), Math.abs(t) > 0.6];
   }
   function renderHeatmap() {
     const sp = FSPEC[state.factor], vis = visible(), host = $("#heatmap");
     const L = $("#heatLegend");
     L.innerHTML = sp.seq
-      ? `<span>${sp.lab}</span><span>0</span><span class="bar" style="background:linear-gradient(90deg,#f0efec,#184f95)"></span><span>≥ ${sp.r}</span>`
-      : `<span>${sp.lab}</span><span>${fmt(sp.c - sp.r, sp.d)}</span><span class="bar" style="background:linear-gradient(90deg,#256abf,#f0efec,#d03b3b)"></span><span>${sgn(sp.c + sp.r, sp.d)}</span>`;
+      ? `<span>${sp.lab}</span><span>0</span><span class="bar" style="background:linear-gradient(90deg,#262b33,#14a974)"></span><span>≥ ${sp.r}</span>`
+      : `<span>${sp.lab}</span><span>${fmt(sp.c - sp.r, sp.d)}</span><span class="bar" style="background:linear-gradient(90deg,#ea3943,#262b33,#14a974)"></span><span>${sgn(sp.c + sp.r, sp.d)}</span>`;
     let html = `<div class="hm-row head"><div></div>${YEARS.map((y) => `<div>${y}</div>`).join("")}<div>10-yr avg</div></div>`;
     let prev = null;
     vis.forEach((s) => {
@@ -219,7 +236,7 @@
       rs.forEach((r) => {
         const v = r[state.factor], [bg, dark] = cellColor(sp, v);
         const cls = sp.p ? (sp.bh && r[sp.bh] < 0.05 ? " ring" : r[sp.p] < 0.05 ? " dot" : "") : "";
-        html += `<div class="hm-cell${cls}" data-t="${s.ticker}" data-y="${r.year}" style="background:${bg};color:${dark ? "#fff" : "#15171b"}">${fmt(v, sp.d)}</div>`;
+        html += `<div class="hm-cell${cls}" data-t="${s.ticker}" data-y="${r.year}" style="background:${bg};color:${dark ? "#0d0f13" : "#e9edf2"}">${fmt(v, sp.d)}</div>`;
       });
       const avg = rs.reduce((a, r) => a + r[state.factor], 0) / rs.length;
       html += `<div class="hm-cell avg">${fmt(avg, sp.d)}</div></div>`;
@@ -230,7 +247,7 @@
     const c = e.target.closest(".hm-cell[data-t]"); if (!c) return hideTip();
     const r = byT[c.dataset.t].carhart.find((x) => x.year === +c.dataset.y);
     showTip(`<b>${r.ticker} · ${r.year}</b> <span style="opacity:.7">n = ${r.n}</span>` +
-      row("Alpha %/yr", `${sgn(r.alpha_pct_yr)} (p ${fp(r.alpha_p)})`) +
+      row("Alpha %/yr", `<span class="${dir(r.alpha_pct_yr)}">${arrow(r.alpha_pct_yr)} ${sgn(r.alpha_pct_yr)}</span> (p ${fp(r.alpha_p)})`) +
       row("BH-adjusted p", fp(r.alpha_p_bh)) +
       ["MKT", "SMB", "HML", "UMD"].map((k) => row(k, `${fmt(r[k])} (p ${fp(r[k + "_p"])})`)).join("") +
       row("R²", fmt(r.R2)), e);
@@ -246,10 +263,10 @@
     xLabels(f, YEARS.filter((yr) => f.iw > 520 || yr % 2 === 0).map((yr) => [x((yr - 2016) * 12 + 6), String(yr)]));
     const path = (arr) => arr.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
     el("path", { d: path(m.g), fill: "none", stroke: C.garch, "stroke-width": 2, "stroke-linejoin": "round" }, f.svg);
-    el("path", { d: path(m.e), fill: "none", stroke: C.egarch, "stroke-width": 2, "stroke-linejoin": "round" }, f.svg);
+    el("path", { d: path(m.e), fill: "none", stroke: C.egarch, "stroke-width": 2, "stroke-linejoin": "round", "stroke-dasharray": "5 3" }, f.svg);
     const ch = el("line", { y1: f.m.t, y2: f.m.t + f.ih, stroke: C.unc, "stroke-width": 1, opacity: 0 }, f.svg);
-    const dg = el("circle", { r: 4, fill: C.garch, stroke: "#fff", "stroke-width": 2, opacity: 0 }, f.svg);
-    const de = el("circle", { r: 4, fill: C.egarch, stroke: "#fff", "stroke-width": 2, opacity: 0 }, f.svg);
+    const dg = el("circle", { r: 4, fill: C.garch, stroke: C.panel, "stroke-width": 2, opacity: 0 }, f.svg);
+    const de = el("rect", { width: 8, height: 8, x: -99, fill: C.egarch, stroke: C.panel, "stroke-width": 2, opacity: 0 }, f.svg);
     const hit = el("rect", { x: f.m.l, y: f.m.t, width: f.iw, height: f.ih, fill: "transparent" }, f.svg);
     const move = (ev) => {
       const pt = f.svg.getBoundingClientRect(), sx = ((ev.clientX - pt.left) / pt.width) * f.w;
@@ -257,7 +274,7 @@
       const xi = x(i);
       ch.setAttribute("x1", xi); ch.setAttribute("x2", xi); ch.setAttribute("opacity", 0.35);
       dg.setAttribute("cx", xi); dg.setAttribute("cy", y(m.g[i])); dg.setAttribute("opacity", 1);
-      de.setAttribute("cx", xi); de.setAttribute("cy", y(m.e[i])); de.setAttribute("opacity", 1);
+      de.setAttribute("x", xi - 4); de.setAttribute("y", y(m.e[i]) - 4); de.setAttribute("opacity", 1);
       showTip(`<b>${t} · ${m.m[i]}</b>` + row("GARCH", fmt(m.g[i], 1) + "%", C.garch) + row("EGARCH", fmt(m.e[i], 1) + "%", C.egarch), ev);
     };
     hit.addEventListener("pointermove", move);
@@ -276,14 +293,14 @@
     rs.forEach((r) => {
       const cx = x(r.year), lo = Math.min(r.Unconditional, r.GARCH, r.EGARCH), hi = Math.max(r.Unconditional, r.GARCH, r.EGARCH);
       el("line", { x1: cx, x2: cx, y1: y(lo), y2: y(hi), stroke: C.muted, "stroke-width": 2 }, f.svg);
-      el("circle", { cx: cx - off, cy: y(r.GARCH), r: 4.5, fill: C.garch, stroke: "#fff", "stroke-width": 2 }, f.svg);
-      el("circle", { cx: cx + off, cy: y(r.EGARCH), r: 4.5, fill: C.egarch, stroke: "#fff", "stroke-width": 2 }, f.svg);
-      el("circle", { cx, cy: y(r.Unconditional), r: 4.5, fill: "#fff", stroke: C.unc, "stroke-width": 2 }, f.svg);
+      el("circle", { cx: cx - off, cy: y(r.GARCH), r: 4.5, fill: C.garch, stroke: C.panel, "stroke-width": 2 }, f.svg);
+      el("rect", { x: cx + off - 4.5, y: y(r.EGARCH) - 4.5, width: 9, height: 9, rx: 1, fill: C.egarch, stroke: C.panel, "stroke-width": 2 }, f.svg);
+      el("circle", { cx, cy: y(r.Unconditional), r: 4.5, fill: C.panel, stroke: C.unc, "stroke-width": 2 }, f.svg);
       const hit = el("rect", { x: cx - bw / 2, y: f.m.t, width: bw, height: f.ih, fill: "transparent" }, f.svg);
       hit.addEventListener("pointermove", (ev) => showTip(`<b>${t} · ${r.year}</b>` +
         row("Unconditional", fmt(r.Unconditional, 1) + "%", C.unc) +
-        row("GARCH", `${fmt(r.GARCH, 1)}% (${sgn(r.GARCH_gap_pct)}%)`, C.garch) +
-        row("EGARCH", `${fmt(r.EGARCH, 1)}% (${sgn(r.EGARCH_gap_pct)}%)`, C.egarch) +
+        row("GARCH", `${fmt(r.GARCH, 1)}% (<span class="${dir(r.GARCH_gap_pct)}">${sgn(r.GARCH_gap_pct)}%</span>)`, C.garch) +
+        row("EGARCH", `${fmt(r.EGARCH, 1)}% (<span class="${dir(r.EGARCH_gap_pct)}">${sgn(r.EGARCH_gap_pct)}%</span>)`, C.egarch) +
         row("Within-year P95/P05", `${fmt(r.GARCH_p95_p05)} / ${fmt(r.EGARCH_p95_p05)}`), ev));
       hit.addEventListener("pointerleave", hideTip);
     });
@@ -301,14 +318,14 @@
     xLabels(f, tv.map((v) => [x(v), fmt(v, 0) + "%"]).map(([a, b]) => [a, b]));
     f.svg.querySelectorAll(".axis text").forEach((n) => { if (+n.getAttribute("y") === f.h - 8) n.setAttribute("y", f.h - 18); });
     const lab = el("text", { x: f.m.l + f.iw / 2, y: f.h - 2, "text-anchor": "middle", class: "axis" }, f.svg);
-    lab.textContent = "Unconditional (% p.a.)"; lab.setAttribute("style", "font:11px var(--mono);fill:#5b616b");
+    lab.textContent = "Unconditional (% p.a.)"; lab.setAttribute("style", "font:11px var(--mono);fill:#7c8591");
     el("line", { x1: x(0), y1: y(0), x2: x(hi), y2: y(hi), stroke: C.unc, "stroke-dasharray": "4 4", "stroke-width": 1 }, f.svg);
     const draw = (r, focus) => {
       const c = el("circle", { cx: x(r.Unconditional), cy: y(r[mdl]), r: focus ? 5 : 3.6,
-        fill: focus ? C.garch : "#9aa0a9", "fill-opacity": focus ? 1 : 0.55, stroke: "#fff", "stroke-width": focus ? 2 : 1 }, f.svg);
+        fill: focus ? C.up : C.dim, "fill-opacity": focus ? 1 : 0.7, stroke: C.panel, "stroke-width": focus ? 2 : 1 }, f.svg);
       c.addEventListener("pointermove", (ev) => showTip(`<b>${r.ticker} · ${r.year}</b>` +
         row("Unconditional", fmt(r.Unconditional, 1) + "%") + row(mdl, fmt(r[mdl], 1) + "%") +
-        row("Gap", sgn(r[mdl + "_gap_pct"]) + "%"), ev));
+        row("Gap", `<span class="${dir(r[mdl + "_gap_pct"])}">${sgn(r[mdl + "_gap_pct"])}%</span>`), ev));
       c.addEventListener("pointerleave", hideTip);
     };
     rs.filter((r) => r.ticker !== state.focus).forEach((r) => draw(r, false));
@@ -332,13 +349,16 @@
     el("line", { x1: f.m.l, x2: f.w - f.m.r, y1: y(0), y2: y(0), stroke: C.unc, "stroke-width": 1 }, f.svg);
     xLabels(f, YEARS.map((yr, i) => [f.m.l + (i + 0.5) * bw, f.iw > 420 ? String(yr) : "’" + String(yr).slice(2)]));
     const w = Math.min(22, bw * 0.32);
+    const defs = el("defs", {}, f.svg), pat = el("pattern", { id: "hatchE", width: 4, height: 4, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" }, defs);
+    el("rect", { width: 4, height: 4, fill: C.egarch, "fill-opacity": 0.25 }, pat);
+    el("rect", { width: 2, height: 4, fill: C.egarch }, pat);
     med.forEach((d, i) => {
       const cx = f.m.l + (i + 0.5) * bw;
       el("path", { d: barPath(cx - w - 1, w, y(0), y(d.g)), fill: C.garch }, f.svg);
-      el("path", { d: barPath(cx + 1, w, y(0), y(d.e)), fill: C.egarch }, f.svg);
+      el("path", { d: barPath(cx + 1, w, y(0), y(d.e)), fill: "url(#hatchE)", stroke: C.egarch, "stroke-width": 1.2 }, f.svg);
       const hit = el("rect", { x: cx - bw / 2, y: f.m.t, width: bw, height: f.ih, fill: "transparent" }, f.svg);
       hit.addEventListener("pointermove", (ev) => showTip(`<b>${d.yr} · median gap</b>` +
-        row("GARCH", sgn(d.g) + "%", C.garch) + row("EGARCH", sgn(d.e) + "%", C.egarch) +
+        row("GARCH", `<span class="${dir(d.g)}">${sgn(d.g)}%</span>`, C.garch) + row("EGARCH", `<span class="${dir(d.e)}">${sgn(d.e)}%</span>`, C.egarch) +
         row("Stocks", String(vis.size)), ev));
       hit.addEventListener("pointerleave", hideTip);
     });
@@ -447,7 +467,7 @@
     const f = (params.get("focus") || "").toUpperCase();
     state = { groups: new Set(), sector: "", exch: "", q: "", sort: "group", factor: "alpha_pct_yr", scatModel: "GARCH",
       focus: byT[f] ? f : "NVDA", msort: { k: "ticker", dir: 0 } };
-    renderKPIs(); buildFilters(); renderGroupTable(); renderVerification(); update();
+    renderKPIs(); renderTape(); buildFilters(); renderGroupTable(); renderVerification(); update();
     $("#heatmap").addEventListener("pointermove", heatTip);
     $("#heatmap").addEventListener("pointerleave", hideTip);
     $("#modelTable").addEventListener("click", (e) => {
