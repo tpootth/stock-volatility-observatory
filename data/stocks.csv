@@ -1,0 +1,25 @@
+ticker,company,exchange,gics_sector,group
+NVDA,NVIDIA,NASDAQ,Information Technology,Semiconductors
+AMD,Advanced Micro Devices,NASDAQ,Information Technology,Semiconductors
+TSM,Taiwan Semiconductor (ADR),NYSE,Information Technology,Semiconductors
+KLAC,KLA,NASDAQ,Information Technology,Semiconductors
+INTC,Intel,NASDAQ,Information Technology,Semiconductors
+TXN,Texas Instruments,NASDAQ,Information Technology,Semiconductors
+AAPL,Apple,NASDAQ,Information Technology,Tech platforms & services
+IBM,IBM,NYSE,Information Technology,Tech platforms & services
+PYPL,PayPal,NASDAQ,Financials,Tech platforms & services
+PAYX,Paychex,NASDAQ,Industrials,Tech platforms & services
+BKNG,Booking Holdings,NASDAQ,Consumer Discretionary,Tech platforms & services
+TSLA,Tesla,NASDAQ,Consumer Discretionary,Consumer discretionary
+NKE,Nike,NYSE,Consumer Discretionary,Consumer discretionary
+LULU,Lululemon,NASDAQ,Consumer Discretionary,Consumer discretionary
+SBUX,Starbucks,NASDAQ,Consumer Discretionary,Consumer discretionary
+PG,Procter & Gamble,NYSE,Consumer Staples,Defensive
+PM,Philip Morris Intl.,NYSE,Consumer Staples,Defensive
+TGT,Target,NYSE,Consumer Staples,Defensive
+PFE,Pfizer,NYSE,Health Care,Defensive
+LLY,Eli Lilly,NYSE,Health Care,Defensive
+BAC,Bank of America,NYSE,Financials,Cyclical & financials
+KKR,KKR,NYSE,Financials,Cyclical & financials
+SLB,SLB,NYSE,Energy,Cyclical & financials
+PCAR,PACCAR,NASDAQ,Industrials,Cyclical & financials

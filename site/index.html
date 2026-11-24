@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Volatility Observatory · Carhart, GARCH &amp; EGARCH for 24 US stocks</title>
+<meta name="description" content="Interactive Carhart four-factor exposures, GARCH/EGARCH volatility models and annual conditional vs unconditional volatility for 24 US stocks, 2016–2025.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2315171b'/%3E%3Cpath d='M5 22 L11 14 L16 18 L21 8 L27 13' stroke='%234f7bff' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Coursework replication · Data Science for Business Analytics · Fin 2026</p>
+    <h1>Stock Volatility <span>Observatory</span></h1>
+    <p class="lede">Carhart four-factor exposures, GARCH(1,1) and EGARCH(1,1) volatility models, and annual
+      conditional-versus-unconditional volatility for 24 US stocks, <span class="num">2016–2025</span>
+      (<span class="num">2,514</span> trading days).</p>
+    <div class="kpis" id="kpis" aria-label="Headline results"></div>
+  </div>
+</header>
+
+<nav class="filters" aria-label="Filters">
+  <div class="wrap filters-inner">
+    <div class="chips" id="groupChips" role="group" aria-label="Industry group"></div>
+    <div class="controls">
+      <label class="ctl"><span>Sector</span><select id="sectorSel"></select></label>
+      <label class="ctl"><span>Exchange</span><select id="exchSel">
+        <option value="">All</option><option>NYSE</option><option>NASDAQ</option></select></label>
+      <label class="ctl search"><span>Ticker</span><input id="search" type="search" placeholder="e.g. NVDA" autocomplete="off" spellcheck="false"></label>
+      <button class="reset" id="resetBtn" type="button">Reset</button>
+      <p class="count" id="countLbl" aria-live="polite"></p>
+    </div>
+  </div>
+</nav>
+
+<main id="main" class="wrap">
+
+  <section id="scorecards" aria-labelledby="h-score">
+    <div class="sec-head">
+      <p class="sec-no">01</p>
+      <div>
+        <h2 id="h-score">Scorecards</h2>
+        <p class="sec-sub">Ten-year averages per stock. Select a card to focus the volatility charts below.</p>
+      </div>
+      <label class="ctl right"><span>Sort</span><select id="sortSel">
+        <option value="group">Group</option><option value="MKT_beta">Market β</option>
+        <option value="vol_pct">Volatility</option><option value="alpha_pct_yr">Alpha</option>
+        <option value="EGARCH_gamma">EGARCH γ</option><option value="GARCH_persist">Persistence</option>
+      </select></label>
+    </div>
+    <div class="cards" id="cards"></div>
+    <p class="empty" id="emptyMsg" hidden>No stocks match these filters.</p>
+  </section>
+
+  <section id="exposures" aria-labelledby="h-exp">
+    <div class="sec-head">
+      <p class="sec-no">02</p>
+      <div>
+        <h2 id="h-exp">Factor exposures by year</h2>
+        <p class="sec-sub">One Carhart regression per stock-year (240 in total), Newey–West HAC(5) standard errors.
+          Dot = p &lt; 0.05; ring = significant after Benjamini–Hochberg FDR.</p>
+      </div>
+    </div>
+    <div class="seg" id="factorSeg" role="tablist" aria-label="Coefficient"></div>
+    <div class="heat-legend" id="heatLegend"></div>
+    <div class="scroll-x"><div id="heatmap" class="heatmap"></div></div>
+  </section>
+
+  <section id="volatility" aria-labelledby="h-vol">
+    <div class="sec-head">
+      <p class="sec-no">03</p>
+      <div>
+        <h2 id="h-vol">Volatility: conditional vs unconditional</h2>
+        <p class="sec-sub">Annualised σ. Conditional annual figure = √252 × RMS of daily σₜ within the year; unconditional = √252 × sample SD of log returns.</p>
+      </div>
+      <label class="ctl right"><span>Focus stock</span><select id="focusSel"></select></label>
+    </div>
+    <div class="grid2">
+      <figure class="panel wide">
+        <figcaption><b id="lineTitle">Monthly mean conditional volatility</b>
+          <span class="legend"><i class="sw garch"></i>GARCH <i class="sw egarch"></i>EGARCH</span></figcaption>
+        <div id="lineChart" class="chart" style="height:280px"></div>
+      </figure>
+      <figure class="panel">
+        <figcaption><b id="annTitle">Annual volatility</b>
+          <span class="legend"><i class="sw unc"></i>Unconditional <i class="sw garch"></i>GARCH <i class="sw egarch"></i>EGARCH</span></figcaption>
+        <div id="annChart" class="chart" style="height:300px"></div>
+      </figure>
+      <figure class="panel">
+        <figcaption><b>Every filtered stock-year</b>
+          <span class="seg small" id="scatSeg"></span></figcaption>
+        <div id="scatChart" class="chart" style="height:300px"></div>
+        <p class="note">Dashed line = equal. Cobalt points = focus stock.</p>
+      </figure>
+      <figure class="panel wide">
+        <figcaption><b>Median gap by year, filtered stocks</b>
+          <span class="legend"><i class="sw garch"></i>GARCH <i class="sw egarch"></i>EGARCH</span></figcaption>
+        <div id="gapChart" class="chart" style="height:230px"></div>
+        <p class="note">Gap = 100 × (conditional ÷ unconditional − 1). Positive: the model implies more volatility than realised; calm years run positive, 2020 negative.</p>
+      </figure>
+    </div>
+    <div class="callouts" id="volStats"></div>
+  </section>
+
+  <section id="models" aria-labelledby="h-mod">
+    <div class="sec-head">
+      <p class="sec-no">04</p>
+      <div>
+        <h2 id="h-mod">Model table</h2>
+        <p class="sec-sub">Student-t GARCH(1,1) and EGARCH(1,1), constant mean, full-sample fit with multi-start. Click a header to sort.</p>
+      </div>
+    </div>
+    <div class="scroll-x"><table class="data" id="modelTable"></table></div>
+  </section>
+
+  <section id="groups" aria-labelledby="h-grp">
+    <div class="sec-head">
+      <p class="sec-no">05</p>
+      <div>
+        <h2 id="h-grp">Groups and pre-registered hypotheses</h2>
+        <p class="sec-sub">Group medians of the stock-level ten-year averages. Hypotheses were written before results were seen; <b class="num" id="hypScore"></b> were supported.</p>
+      </div>
+    </div>
+    <div class="scroll-x"><table class="data" id="groupTable"></table></div>
+    <div class="hyp-grid" id="hypGrid"></div>
+  </section>
+
+  <section id="methods" aria-labelledby="h-meth" class="methods">
+    <div class="sec-head">
+      <p class="sec-no">06</p>
+      <div><h2 id="h-meth">Methods, verification and limitations</h2></div>
+    </div>
+    <div class="cols3">
+      <div>
+        <h3>Methods</h3>
+        <ul>
+          <li><b>Data.</b> Datastream total return indices (dividends included) for 24 stocks; Kenneth French daily MKT−RF, SMB, HML, RF and UMD. The French calendar defines trading days.</li>
+          <li><b>Q1.</b> Excess simple returns on the four factors, OLS per stock-year, HAC(5) errors; α reported ×252 as %/yr; BH-FDR across 240 tests.</li>
+          <li><b>Q2.</b> Percent log returns; GARCH(1,1) and EGARCH(1,1) with Student-t errors, one fit per stock over 2016–2025; a grid of starting values keeps the highest log-likelihood. γ &lt; 0 = bad news raises volatility more (arch sign convention).</li>
+          <li><b>Q3.</b> Annual unconditional SD vs annual RMS of conditional σ, both ×√252.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Verification</h3>
+        <ul id="verifyList"></ul>
+        <p class="note">Re-run with <code>scripts/verify_against_coursework.py</code> (arch 9.0, statsmodels 0.15) from the cleaned daily series; the build also asserts every headline figure.</p>
+      </div>
+      <div>
+        <h3>Limitations</h3>
+        <ul>
+          <li>One year of daily data per regression makes α noisy: 12/240 significant at 5% is what chance alone produces, and none survive FDR.</li>
+          <li>Volatility models are fit in-sample on the full period, so conditional σ uses parameters estimated with future data. It is not a forecast test.</li>
+          <li>The 2016 conditional values depend partly on the backcast starting variance.</li>
+          <li>The five groups are hand-built and small (4–6 stocks); hypothesis checks are descriptive, not formal tests.</li>
+          <li>24 large, surviving US-listed stocks; results do not generalise to the wider market.</li>
+          <li>Educational coursework, not investment advice.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="downloads">
+      <h3>Aggregate data (CSV)</h3>
+      <p>
+        <a href="data/stocks.csv">stocks</a> · <a href="data/carhart_stock_year.csv">carhart_stock_year</a> ·
+        <a href="data/volatility_models.csv">volatility_models</a> · <a href="data/annual_volatility.csv">annual_volatility</a> ·
+        <a href="data/monthly_conditional_vol.csv">monthly_conditional_vol</a> · <a href="data/per_stock_summary.csv">per_stock_summary</a> ·
+        <a href="data/group_summary.csv">group_summary</a>
+      </p>
+      <p class="note">Daily prices, returns and the licensed Datastream workbook are not published. Only model estimates and monthly aggregates are.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Live site built from the saved notebook outputs of the group exercise. Source: <a id="repoLink" href="https://github.com/tpootth/stock-volatility-observatory">github.com/tpootth/stock-volatility-observatory</a></p>
+    <p>References: Carhart (1997) <i>J. Finance</i> 52(1); Bollerslev (1986) <i>J. Econometrics</i> 31; Nelson (1991) <i>Econometrica</i> 59(2); <a href="https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html">Kenneth French Data Library</a>.</p>
+  </div>
+</footer>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<script src="app.js" defer></script>
+</body>
+</html>

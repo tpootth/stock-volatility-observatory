@@ -1,0 +1,35 @@
+{
+  "saved_headlines": {
+    "q1_rows": 240,
+    "alpha_sig_p05": 12,
+    "alpha_sig_bh": 0,
+    "median_R2": 0.396,
+    "median_MKT": 1.068,
+    "egarch_better_aic": 24,
+    "egarch_better_bic": 23,
+    "gamma_neg_sig": 19,
+    "median_garch_persistence": 0.9757,
+    "peak_mar2020": 41,
+    "q3_median_abs_gap_garch": 5.7,
+    "q3_median_abs_gap_egarch": 6.46,
+    "q3_within10_garch": 70.83,
+    "q3_within10_egarch": 68.33,
+    "q3_corr_garch": 0.985
+  },
+  "q3_recompute_max_abs_diff_pp": {
+    "uncond": 0.0,
+    "garch": 0.0,
+    "egarch": 0.0
+  },
+  "q1_refit_max_abs_diff": {
+    "alpha_pct_yr": 0.0,
+    "MKT": 0.0,
+    "HML": 0.0,
+    "alpha_p": 0.0
+  },
+  "q2_refit": {
+    "max_abs_dLL": 0.0,
+    "median_abs_dLL": 0.0,
+    "max_abs_dgamma": 0.0
+  }
+}
