@@ -45,8 +45,9 @@
     return { svg, w, h, m, iw: w - m.l - m.r, ih: h - m.t - m.b };
   }
   const lin = (d0, d1, r0, r1) => (v) => r0 + ((v - d0) / (d1 - d0 || 1)) * (r1 - r0);
-  function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / (p / 2)) * (p / 2); }
+  function niceMax(v) { if (!(v > 0) || !Number.isFinite(v)) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / (p / 2)) * (p / 2); }
   function ticks(lo, hi, n = 5) {
+    if (!(hi > lo) || !Number.isFinite(hi - lo)) return [lo];
     const step0 = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(step0)));
     const step = [1, 2, 2.5, 5, 10].map((k) => k * p).find((s) => s >= step0);
     const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
